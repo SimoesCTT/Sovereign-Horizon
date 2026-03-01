@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sovereign-Horizon | Manifold Observer</title>
+    <style>
+        body { margin: 0; background: #000; color: #00ffcc; font-family: monospace; overflow: hidden; }
+        #ui { position: absolute; top: 20px; left: 20px; pointer-events: none; }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <h1>SOVEREIGN-HORIZON v1.0.0</h1>
+        <div id="status">STATUS: CONNECTING TO MANIFOLD...</div>
+        <div id="fidelity">FIDELITY: 1.0000000000000000</div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Create 1024 Logic Points
+        const geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(1024 * 3);
+        const points = new THREE.Points(geometry, new THREE.PointsMaterial({ color: 0x00ffcc, size: 0.05 }));
+        scene.add(points);
+        camera.position.z = 15;
+
+        // WebSocket Handshake
+        const ws = new URLSearchParams(window.location.search).get('ws') || 'localhost:8000';
+        const socket = new WebSocket(`ws://${ws}/ws/manifold`);
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            const bits = data.bits; // Expected 1024 array
+            
+            for(let i = 0; i < 1024; i++) {
+                // Map the 1024 bits into a Unitary Sphere
+                let phi = Math.acos(-1 + (2 * i) / 1024);
+                let theta = Math.sqrt(1024 * Math.PI) * phi;
+                
+                // If bit is high, expand the manifold; if low, collapse to center
+                let radius = bits[i] ? 5 : 2; 
+                positions[i*3] = radius * Math.cos(theta) * Math.sin(phi);
+                positions[i*3+1] = radius * Math.sin(theta) * Math.sin(phi);
+                positions[i*3+2] = radius * Math.cos(phi);
+            }
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            document.getElementById('status').innerText = "STATUS: GRANITE-FIRM";
+        };
+
+        function animate() {
+            requestAnimationFrame(animate);
+            points.rotation.y += 0.001;
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>
